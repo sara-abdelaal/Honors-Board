@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة المجتازات</title>
+<style>
+@font-face{font-family:"UI";src:url("/fonts/Cairo-Medium.ttf");font-weight:500}
+@font-face{font-family:"UI";src:url("/fonts/Cairo-Bold.ttf");font-weight:700}
+@font-face{font-family:"Brand";src:url("/fonts/Amiri-Bold.ttf");font-weight:700}
+{% for g, fs in groups %}{% for f in fs %}@font-face{font-family:"pf-{{ f.key }}";src:url("/fonts/{{ f.file }}")}
+{% endfor %}{% endfor %}
+:root{
+  --paper:#f4eeeb; --card:#fffdfb; --ink:#2a2124; --muted:#85757a;
+  --wine:#6d1e2b; --wine-dk:#521520; --rose:#ead3d7; --gold:#b68a4b; --line:#e5d9d4;
+  --ok:#2f6b4f; --warn:#8a5a12; --err:#a3262f;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:500 15px/1.65 "UI",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+.app{display:grid;grid-template-columns:minmax(360px,440px) 1fr;min-height:100vh}
+/* ---------- لوحة الإعدادات ---------- */
+.side{background:var(--card);border-inline-end:1px solid var(--line);display:flex;flex-direction:column;max-height:100vh;position:sticky;top:0}
+.brand{padding:22px 24px 14px;border-bottom:1px solid var(--line)}
+.brand h1{margin:0;font:700 30px/1.2 "Brand",serif;color:var(--wine)}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.scroll{overflow:auto;padding:6px 24px 24px;flex:1}
+.fs{padding:18px 0 8px;border-bottom:1px solid var(--line)}
+.fs:last-of-type{border-bottom:0}
+h2{font:700 16px/1.4 "UI",sans-serif;color:var(--wine);margin:0 0 4px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=number],select,textarea{width:100%;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 11px;transition:border-color .15s}
+input:hover,select:hover,textarea:hover{border-color:#cdb9b3}
+textarea{min-height:230px;resize:vertical;line-height:1.9;font-size:15px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;min-height:30px}
+.dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--gold);margin:0 9px;vertical-align:middle}
+.chip{background:var(--rose);color:var(--wine-dk);border-radius:99px;padding:2px 12px;font-weight:700;font-size:13px}
+.note{font-size:12.5px;color:var(--warn);background:#fbf3e3;border:1px solid #efdcb4;border-radius:8px;padding:8px 10px;margin-top:8px}
+.note b{color:var(--ink)}
+.check{display:flex;align-items:center;gap:9px;color:var(--ink);font-size:14px;margin:9px 0}
+.check input{width:18px;height:18px;accent-color:var(--wine)}
+.sample{margin-top:6px;padding:8px 12px;border:1px dashed var(--line);border-radius:8px;font-size:22px;line-height:1.5;color:var(--wine);background:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.colors{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.colors label{margin:0 0 4px;font-size:12px}
+input[type=color]{width:100%;height:38px;padding:2px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--wine)}
+.bgbox{display:flex;gap:12px;align-items:center}
+.bgbox img{width:64px;height:90px;object-fit:cover;border:1px solid var(--line);border-radius:6px;background:#fff}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:700;font-size:14px;transition:background .15s,border-color .15s}
+.btn:hover{background:#fbf6f4;border-color:#cdb9b3}
+.btn.primary{background:var(--wine);color:#fff;border-color:var(--wine)}
+.btn.primary:hover{background:var(--wine-dk)}
+.btn[disabled]{opacity:.55;cursor:progress}
+.btn.small{padding:5px 12px;font-size:13px}
+.bgbtns{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.foot{padding:12px 24px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;background:var(--card)}
+.foot .btn.primary{flex:1;padding:11px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+/* ---------- منصة المعاينة ---------- */
+.stage{padding:0 28px 60px;min-width:0}
+.bar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(6px);padding:16px 0 12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+#status{font-weight:700}
+#status.busy::before{content:"";display:inline-block;width:10px;height:10px;margin-inline-end:8px;border-radius:50%;background:var(--gold);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){ #status.busy::before{animation:none}}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.warns{margin:14px 0 0;display:grid;gap:8px}
+.warns .note{margin:0}
+.sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px;margin-top:24px;align-items:start}
+.sheet{margin:0;background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(60,30,35,.14),0 14px 30px -12px rgba(60,30,35,.35);overflow:hidden}
+.sheet img{display:block;width:100%;height:auto;cursor:zoom-in}
+.sheet figcaption{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:13.5px;background:var(--card);border-top:1px solid var(--line)}
+.empty{margin-top:80px;text-align:center;color:var(--muted)}
+.errbox{margin-top:24px;padding:16px 18px;border:1px solid #e6b9bd;background:#fbeced;color:var(--err);border-radius:10px;font-weight:700}
+dialog{border:0;padding:0;background:transparent;max-width:min(94vw,900px);max-height:96vh}
+dialog::backdrop{background:rgba(30,15,18,.72)}
+dialog img{display:block;max-width:100%;max-height:94vh;margin:auto;border-radius:6px}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;max-height:none}
+  .scroll{overflow:visible}
+  .foot{position:sticky;bottom:0;z-index:6}
+  .stage{padding:0 14px 60px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand">
+    <h1>لوحة المجتازات</h1>
+    <p>الصق الأسماء، اختر الخلفية، وستُصمَّم اللوحة تلقائيًا.</p>
+  </div>
+
+  <form id="f" class="scroll" autocomplete="off" onsubmit="return false">
+    <section class="fs">
+      <h2>الأسماء</h2>
+      <textarea name="names" id="names" spellcheck="false" placeholder="اسم في كل سطر — الترقيم والإيموجي يُحذفان تلقائيًا">{{ sample }}</textarea>
+      <div class="chips" id="count"></div>
+      <div id="ignored"></div>
+    </section>
+
+    <section class="fs">
+      <h2>الخلفية</h2>
+      <div class="bgbox">
+        <img id="bgthumb" src="/static/default_bg.png" alt="معاينة الخلفية">
+        <div class="bgbtns">
+          <button type="button" class="btn small" id="pick">اختيار صورة الخلفية</button>
+          <button type="button" class="btn small" id="resetbg" hidden>استخدام الإطار الافتراضي</button>
+          <input type="file" id="bgfile" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" name="auto_frame" checked> اكتشاف حدود الإطار تلقائيًا</label>
+      <label class="check"><input type="checkbox" name="tint"> تلوين الخلفية البيضاء بلون كريمي</label>
+      <label class="check"><input type="checkbox" name="panel"> لوح شفاف خلف النص (للخلفيات المزدحمة)</label>
+      <label for="extra_pad">هامش إضافي من الجانبين: <bdi dir="ltr" id="padv">0%</bdi></label>
+      <input type="range" id="extra_pad" name="extra_pad" min="0" max="12" step="0.5" value="0">
+    </section>
+
+    <section class="fs">
+      <h2>العناوين</h2>
+      <label for="title">العنوان الرئيسي</label>
+      <div class="row" style="grid-template-columns:1fr 110px">
+        <div><input type="text" id="title" name="title" value="مجتازات الأترجة ٤" aria-label="العنوان الرئيسي"></div>
+        <div><input type="text" id="group" name="group" value="ج" maxlength="12" placeholder="المجموعة" aria-label="المجموعة" title="المجموعة: أ / ب / ج ..."></div>
+      </div>
+      <div class="hint">حقل «المجموعة» يُضاف للعنوان بين قوسين تلقائيًا، مثل: مجتازات الأترجة ٤ (ج). اتركيه فارغًا لإخفائه.</div>
+      <label for="subtitle">العنوان الفرعي</label>
+      <input type="text" id="subtitle" name="subtitle" value="الاختبار الحادي عشر سورة النساء">
+      <label for="extra">سطر إضافي (اختياري)</label>
+      <input type="text" id="extra" name="extra" placeholder="مثال: الآيات من 130 إلى 139">
+      <div class="hint">يمكنك كتابة التشكيل كما تريد، وتُحفظ الحروف كما كتبتها.</div>
+    </section>
+
+    <section class="fs">
+      <h2>الخطوط والألوان</h2>
+      {% for fld, lab in [("font_title","خط العنوان الرئيسي"),("font_subtitle","خط العنوان الفرعي"),("font_names","خط الأسماء")] %}
+      <label for="{{ fld }}">{{ lab }}</label>
+      <select id="{{ fld }}" name="{{ fld }}" data-sample="s_{{ fld }}">
+        {% for g, fs in groups %}<optgroup label="{{ g }}">
+          {% for f in fs %}<option value="{{ f.key }}" {{ "selected" if defaults[fld]==f.key }} {{ "disabled" if not f.ok }}>{{ f.label }}{{ " — غير متاح في وضع التوافق" if not f.ok }}</option>
+          {% endfor %}</optgroup>{% endfor %}
+      </select>
+      <div class="sample" id="s_{{ fld }}">{{ "الأترجة ٤ (ج)" if fld=="font_title" else ("الاِخْتِبَارُ الحَادِي عَشَرَ" if fld=="font_subtitle" else "صفاء عبدالرحمن") }}</div>
+      {% endfor %}
+      <div class="colors" style="margin-top:14px">
+        <div><label for="color_title">العنوان</label><input type="color" id="color_title" name="color_title" value="#6d1e2b"></div>
+        <div><label for="color_subtitle">الفرعي</label><input type="color" id="color_subtitle" name="color_subtitle" value="#6d1e2b"></div>
+        <div><label for="color_names">الأسماء</label><input type="color" id="color_names" name="color_names" value="#221c1c"></div>
+        <div><label for="color_numbers">الأرقام</label><input type="color" id="color_numbers" name="color_numbers" value="#221c1c"></div>
+      </div>
+      <label class="check"><input type="checkbox" name="auto_contrast" checked> عكس الألوان تلقائيًا على الخلفيات الداكنة</label>
+    </section>
+
+    <section class="fs">
+      <h2>التوزيع والإخراج</h2>
+      <div class="row">
+        <div><label for="max_per_page">أقصى عدد أسماء في اللوحة</label><input type="number" id="max_per_page" name="max_per_page" min="2" max="120" value="34"></div>
+        <div><label for="columns">الأعمدة</label>
+          <select id="columns" name="columns"><option value="0" selected>تلقائي</option><option value="1">عمود واحد</option><option value="2">عمودان</option><option value="3">ثلاثة</option><option value="4">أربعة</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="start_number">يبدأ الترقيم من</label><input type="number" id="start_number" name="start_number" min="0" value="1"></div>
+        <div><label for="digits">شكل الأرقام</label>
+          <select id="digits" name="digits"><option value="western" selected>1 2 3</option><option value="indic">١ ٢ ٣</option></select></div>
+      </div>
+      <label class="check"><input type="checkbox" name="show_numbers" checked> إظهار الترقيم</label>
+      <label class="check"><input type="checkbox" name="equal_split" checked> توزيع الأسماء بالتساوي على اللوحات</label>
+      <label for="out_width">دقة الصورة النهائية</label>
+      <select id="out_width" name="out_width">
+        <option value="1080">1080 بكسل — خفيفة</option>
+        <option value="1600" selected>1600 بكسل — موصى بها</option>
+        <option value="2400">2400 بكسل — عالية</option>
+        <option value="0">حجم الخلفية الأصلي</option>
+      </select>
+      <div class="hint">محرك النص الحالي: <b>{{ "متقدم (HarfBuzz)" if engine=="raqm" else "توافق (reshaper)" }}</b></div>
+    </section>
+  </form>
+
+  <div class="foot">
+    <button type="button" class="btn primary" id="go">إنشاء اللوحة</button>
+    <button type="button" class="btn small" id="reset" title="مسح الإعدادات المحفوظة">إعادة الضبط</button>
+  </div>
+</aside>
+
+<main class="stage" id="stage">
+  <div class="bar">
+    <div id="status" role="status" aria-live="polite">جارٍ التجهيز…</div>
+    <div class="actions">
+      <button type="button" class="btn small" data-export="pdf" disabled>PDF</button>
+      <button type="button" class="btn small primary" data-export="zip" disabled>تحميل كل اللوحات (ZIP)</button>
+    </div>
+  </div>
+  <div id="warns" class="warns"></div>
+  <div id="sheets" class="sheets"></div>
+  <div id="empty" class="empty" hidden>اكتب أسماءً في الحقل لتظهر اللوحة هنا.</div>
+</main>
+</div>
+
+<dialog id="zoom"><img alt="اللوحة مكبّرة"></dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const form = $("#f"), sheets = $("#sheets"), statusEl = $("#status");
+const nf = new Intl.NumberFormat("ar-EG");
+let bgFile = null, ctrl = null, timer = null, lastOk = false;
+const KEY = "board-settings-v3";
+let groupDirty = false;
+
+/* ---------- حفظ الإعدادات محليًا (ما عدا الأسماء والخلفية) ---------- */
+function saveSettings(){
+  const o = {};
+  for (const el of form.elements){
+    if (!el.name || el.name === "names") continue;
+    o[el.name] = el.type === "checkbox" ? el.checked : el.value;
+  }
+  try { localStorage.setItem(KEY, JSON.stringify(o)); } catch(e){}
+}
+function loadSettings(){
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY) || "{}");
+    for (const el of form.elements){
+      if (!el.name || !(el.name in o) || el.name === "names") continue;
+      if (el.type === "checkbox") el.checked = !!o[el.name];
+      else if (el.tagName === "SELECT") { if ([...el.options].some(x => x.value === o[el.name] && !x.disabled)) el.value = o[el.name]; }
+      else el.value = o[el.name];
+    }
+  } catch(e){}
+}
+
+/* ---------- بناء الطلب ---------- */
+function payload(){
+  const fd = new FormData(form);
+  form.querySelectorAll("input[type=checkbox]").forEach(cb => fd.set(cb.name, cb.checked ? "1" : "0"));
+  if (bgFile) fd.append("bg", bgFile);
+  return fd;
+}
+
+/* ---------- عدّاد الأسماء ---------- */
+let pt = null;
+function parseNames(){
+  clearTimeout(pt);
+  pt = setTimeout(async () => {
+    const fd = new FormData(); fd.append("names", $("#names").value);
+    try {
+      const j = await (await fetch("/api/parse", {method:"POST", body:fd})).json();
+      if (j.group && !groupDirty && $("#group").value !== j.group){ $("#group").value = j.group; saveSettings(); schedule(); }
+      $("#count").innerHTML = j.count ? `<span class="chip">${nf.format(j.count)} اسمًا</span>` : "";
+      let h = "";
+      if (j.ignored.length) h += `<div class="note"><b>تم تجاهل ${nf.format(j.ignored.length)} سطر ليست أسماءً مرقّمة:</b><br>${j.ignored.map(esc).join("<br>")}<br>انسخها إلى حقول العناوين إن أردت.</div>`;
+      if (j.duplicates.length) h += `<div class="note"><b>أسماء مكررة:</b> ${j.duplicates.map(esc).join("، ")} (تُركت كما هي)</div>`;
+      $("#ignored").innerHTML = h;
+    } catch(e){}
+  }, 250);
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- الرسم ---------- */
+function setStatus(t, busy){ statusEl.textContent = t; statusEl.classList.toggle("busy", !!busy); }
+function setExport(on){ document.querySelectorAll("[data-export]").forEach(b => b.disabled = !on); }
+
+async function render(){
+  if (ctrl) ctrl.abort();
+  ctrl = new AbortController();
+  const my = ctrl;
+  if (!$("#names").value.trim()){
+    sheets.innerHTML = ""; $("#warns").innerHTML = ""; $("#empty").hidden = false;
+    setStatus("لا توجد أسماء", false); setExport(false); return;
+  }
+  $("#empty").hidden = true;
+  setStatus("جارٍ إنشاء اللوحة…", true);
+  try {
+    const res = await fetch("/api/render", {method:"POST", body:payload(), signal: my.signal});
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || "تعذر إنشاء اللوحة");
+    sheets.innerHTML = j.pages.map((p, i) => `
+      <figure class="sheet">
+        <img src="${p.img}" alt="اللوحة ${i+1}" data-zoom>
+        <figcaption><span>اللوحة ${nf.format(i+1)} من ${nf.format(j.pages.length)}<i class="dot"></i>${nf.format(p.count)} اسمًا</span>
+        <button type="button" class="btn small" data-export="png" data-page="${i+1}">PNG</button></figcaption>
+      </figure>`).join("");
+    $("#warns").innerHTML = j.warnings.map(w => `<div class="note">${esc(w)}</div>`).join("");
+    const n = j.pages.length, c = j.info.cols;
+    const pw = n==1 ? "لوحة واحدة" : n==2 ? "لوحتان" : n<=10 ? `${nf.format(n)} لوحات` : `${nf.format(n)} لوحة`;
+    const cw = c==1 ? "عمود واحد" : c==2 ? "عمودان" : `${nf.format(c)} أعمدة`;
+    setStatus(`${nf.format(j.count)} اسمًا`, false);
+    statusEl.innerHTML = `${nf.format(j.count)} اسمًا<i class="dot"></i>${pw}<i class="dot"></i>${cw}`;
+    setExport(true); lastOk = true;
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    sheets.innerHTML = `<div class="errbox" style="grid-column:1/-1">${esc(e.message)}</div>`;
+    $("#warns").innerHTML = ""; setStatus("تعذر إنشاء اللوحة", false); setExport(false);
+  }
+}
+function schedule(){ clearTimeout(timer); timer = setTimeout(render, 550); }
+
+/* ---------- تصدير ---------- */
+async function exportFile(btn){
+  const fmt = btn.dataset.export, old = btn.textContent;
+  btn.disabled = true; btn.textContent = "جارٍ التجهيز…";
+  try {
+    const fd = payload(); fd.set("fmt", fmt); if (btn.dataset.page) fd.set("page", btn.dataset.page);
+    const res = await fetch("/api/export", {method:"POST", body:fd});
+    if (!res.ok) throw new Error((await res.json()).error || "فشل التصدير");
+    const blob = await res.blob();
+    const name = fmt === "pdf" ? "board.pdf" : fmt === "zip" ? "boards.zip" : `board_${btn.dataset.page}.png`;
+    const a = Object.assign(document.createElement("a"), {href: URL.createObjectURL(blob), download: name});
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (e) { alert(e.message); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-export]"); if (b) return exportFile(b);
+  const z = e.target.closest("[data-zoom]"); if (z){ const d = $("#zoom"); d.querySelector("img").src = z.src; d.showModal(); }
+});
+$("#zoom").addEventListener("click", () => $("#zoom").close());
+
+/* ---------- الخلفية ---------- */
+$("#pick").onclick = () => $("#bgfile").click();
+$("#bgfile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  bgFile = f; $("#bgthumb").src = URL.createObjectURL(f); $("#resetbg").hidden = false; render();
+};
+$("#resetbg").onclick = () => { bgFile = null; $("#bgfile").value = ""; $("#bgthumb").src = "/static/default_bg.png"; $("#resetbg").hidden = true; render(); };
+
+/* ---------- معاينة الخطوط ---------- */
+function fontSample(sel){
+  const el = $("#" + sel.dataset.sample); if (el) el.style.fontFamily = `"pf-${sel.value}", serif`;
+}
+document.querySelectorAll("select[data-sample]").forEach(s => { fontSample(s); s.addEventListener("change", () => fontSample(s)); });
+function padLabel(){ $("#padv").textContent = $("#extra_pad").value + "%"; }
+
+/* ---------- ربط الأحداث ---------- */
+$("#group").addEventListener("input", () => { groupDirty = true; });
+$("#names").addEventListener("input", () => { parseNames(); schedule(); });
+form.addEventListener("input", e => { if (e.target.id !== "names"){ padLabel(); saveSettings(); schedule(); } });
+form.addEventListener("change", e => { if (e.target.id !== "names"){ saveSettings(); schedule(); } });
+$("#go").onclick = () => { clearTimeout(timer); render(); if (innerWidth <= 860) $("#stage").scrollIntoView(); };
+$("#reset").onclick = () => { try { localStorage.removeItem(KEY); } catch(e){} location.reload(); };
+
+loadSettings();
+document.querySelectorAll("select[data-sample]").forEach(fontSample);
+padLabel(); parseNames(); render();
+</script>
+</body>
+</html>
